@@ -1,7 +1,23 @@
+import { useState } from "react";
 import "./App.css";
 function App() {
+  const [message, setMessage] = useState("");
+
+const testBackend = async () => {
+    const response = await fetch("http://localhost:5000/api/test");
+    const data = await response.json();
+
+    setMessage(data.message);
+};
   return (
     <div className="app">
+      {/* Backend Test */}
+      <button onClick={testBackend}>
+        Test Backend
+      </button>
+
+      <p>{message}</p>
+
       <nav className="navbar">
         <h2>CareerTrack</h2>
 
@@ -50,6 +66,7 @@ function App() {
           <p>Prepare for coding, aptitude and technical interviews.</p>
         </div>
       </section>
+
     </div>
   );
 }
