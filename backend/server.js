@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const mongoose = require("mongoose");
 require("dotenv").config();
 
 const app = express();
@@ -8,18 +9,30 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// MongoDB Atlas connection
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected successfully");
+  })
+  .catch((error) => {
+    console.log("MongoDB connection error:", error.message);
+  });
+
 // Test route
 app.get("/", (req, res) => {
-    res.send("CareerTrack Backend API is running");
+  res.send("CareerTrack Backend API is running");
 });
+
 app.get("/api/test", (req, res) => {
-    res.json({
-        message: "Hello from CareerTrack Backend!"
-    });
+  res.json({
+    message: "Hello from CareerTrack Backend!"
+  });
 });
+
 // Start server
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
