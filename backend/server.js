@@ -1,7 +1,9 @@
+
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
+const studentsRoutes = require("./routes/studentsRoutes");
 
 const app = express();
 
@@ -9,6 +11,18 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use("/api/students", studentsRoutes);
+
+app.get("/api/hello", (req, res) => {
+  res.send("API route is working");
+});
+
+app.post("/api/testpost", (req, res) => {
+  res.json({
+    message: "POST route is working",
+    data: req.body
+  });
+});
 // MongoDB Atlas connection
 mongoose
   .connect(process.env.MONGO_URI)
