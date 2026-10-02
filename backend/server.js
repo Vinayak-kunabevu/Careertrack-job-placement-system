@@ -1,9 +1,13 @@
 
+
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 require("dotenv").config();
+
 const studentsRoutes = require("./routes/studentsRoutes");
+const jobsRoutes = require("./routes/jobsRoutes");
+const applicationsRoutes = require("./routes/applicationsRoutes");
 
 const app = express();
 
@@ -11,7 +15,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// API routes
 app.use("/api/students", studentsRoutes);
+app.use("/api/jobs", jobsRoutes);
+app.use("/api/applications", applicationsRoutes);
+app.get("/api/applications-check", (req, res) => {
+  res.send("Applications route check passed");
+});
 
 app.get("/api/hello", (req, res) => {
   res.send("API route is working");
@@ -20,9 +30,10 @@ app.get("/api/hello", (req, res) => {
 app.post("/api/testpost", (req, res) => {
   res.json({
     message: "POST route is working",
-    data: req.body
+    data: req.body,
   });
 });
+
 // MongoDB Atlas connection
 mongoose
   .connect(process.env.MONGO_URI)
@@ -33,14 +44,14 @@ mongoose
     console.log("MongoDB connection error:", error.message);
   });
 
-// Test route
+// Root route
 app.get("/", (req, res) => {
   res.send("CareerTrack Backend API is running");
 });
 
 app.get("/api/test", (req, res) => {
   res.json({
-    message: "Hello from CareerTrack Backend!"
+    message: "Hello from CareerTrack Backend!",
   });
 });
 
