@@ -45,7 +45,7 @@ router.put("/:id", verifyToken, verifyAdmin, async (req, res) => {
       req.params.id,
       req.body,
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       }
     );
@@ -91,4 +91,3 @@ router.delete("/:id", verifyToken, verifyAdmin, async (req, res) => {
 });
 
 module.exports = router;
-
