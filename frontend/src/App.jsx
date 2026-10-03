@@ -34,19 +34,43 @@ function App() {
   const [showResumeModal, setShowResumeModal] = useState(false);
   const [isSubmittingApplication, setIsSubmittingApplication] = useState(false);
 
-  // Fetch all jobs
+  // Fetch jobs on page load, when the tab becomes active, and periodically.
+  // This lets newly added admin jobs appear without requiring a manual reload.
   useEffect(() => {
-    fetch("http://localhost:5000/api/jobs")
-      .then((response) => {
+    let isMounted = true;
+
+    const fetchJobs = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/jobs");
+
         if (!response.ok) {
           throw new Error("Failed to fetch jobs");
         }
-        return response.json();
-      })
-      .then((data) => setJobs(data))
-      .catch((error) => {
+
+        const data = await response.json();
+
+        if (isMounted) {
+          if (Array.isArray(data)) {
+            setJobs(data);
+          } else {
+            console.error("Unexpected jobs API response:", data);
+            setJobs([]);
+          }
+        }
+      } catch (error) {
         console.error("Error fetching jobs:", error);
-      });
+      }
+    };
+
+    fetchJobs();
+    const refreshInterval = window.setInterval(fetchJobs, 10000);
+    window.addEventListener("focus", fetchJobs);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(refreshInterval);
+      window.removeEventListener("focus", fetchJobs);
+    };
   }, []);
 
   // Fetch profile when logged in, including after page refresh
