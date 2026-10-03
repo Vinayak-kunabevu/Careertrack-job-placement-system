@@ -3,8 +3,6 @@ const jwt = require("jsonwebtoken");
 
 function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization;
-
-  // Check whether the token was provided
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
@@ -16,8 +14,8 @@ function verifyToken(req, res, next) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Store the logged-in student's ID
     req.studentId = decoded.id;
+    req.userRole = decoded.role || "student";
 
     next();
   } catch (error) {
@@ -27,4 +25,17 @@ function verifyToken(req, res, next) {
   }
 }
 
+// Allow only admin users
+function verifyAdmin(req, res, next) {
+  if (req.userRole !== "admin") {
+    return res.status(403).json({
+      message: "Access denied. Admin only.",
+    });
+  }
+
+  next();
+}
+
 module.exports = verifyToken;
+module.exports.verifyAdmin = verifyAdmin;
+

@@ -105,5 +105,73 @@ router.post(
   }
 );
 
+// Get all applications (Admin only)
+router.get("/", verifyToken, require("../middleware/authMiddleware").verifyAdmin, async (req, res) => {
+  try {
+    const applications = await Application.find()
+      .populate("student", "name email branch cgpa")
+      .populate("job", "company role location package deadline")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(applications);
+  } catch (error) {
+    console.error("Error fetching all applications:", error);
+
+    res.status(500).json({
+      message: "Error fetching all applications",
+    });
+  }
+});
+
+// Update application status (Admin only)
+router.put(
+  "/:applicationId/status",
+  verifyToken,
+  require("../middleware/authMiddleware").verifyAdmin,
+  async (req, res) => {
+    try {
+      const { status } = req.body;
+
+      const allowedStatuses = [
+        "Applied",
+        "Under Review",
+        "Shortlisted",
+        "Rejected",
+        "Selected",
+      ];
+
+      if (!allowedStatuses.includes(status)) {
+        return res.status(400).json({
+          message: "Invalid application status",
+        });
+      }
+
+      const application = await Application.findByIdAndUpdate(
+        req.params.applicationId,
+        { status },
+       { returnDocument: "after", runValidators: true }
+      );
+
+      if (!application) {
+        return res.status(404).json({
+          message: "Application not found",
+        });
+      }
+
+      res.status(200).json({
+        message: "Application status updated successfully",
+        application,
+      });
+    } catch (error) {
+      console.error("Error updating application status:", error);
+
+      res.status(500).json({
+        message: "Error updating application status",
+      });
+    }
+  }
+);
+
+
 module.exports = router;
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import "./App.css";
-
+import AdminDashboard from "./AdminDashboard";
 function App() {
   const [student, setStudent] = useState(null);
   const [jobs, setJobs] = useState([]);
@@ -91,30 +91,41 @@ function App() {
   }, [isLoggedIn]);
 
   // Fetch applications belonging to the logged-in student
-  useEffect(() => {
-    if (!isLoggedIn) {
-      setApplications([]);
-      return;
-    }
+  
+// Fetch applications belonging to the logged-in student
+useEffect(() => {
+  if (!isLoggedIn) {
+    setApplications([]);
+    return;
+  }
 
+  const fetchMyApplications = async () => {
     const token = localStorage.getItem("token");
 
-    fetch("http://localhost:5000/api/applications/my", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Failed to fetch applications");
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/applications/my",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-        return response.json();
-      })
-      .then((data) => setApplications(data))
-      .catch((error) => {
-        console.error("Error fetching applications:", error);
-      });
-  }, [isLoggedIn]);
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch applications");
+      }
+
+      const data = await response.json();
+      setApplications(data);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+    }
+  };
+
+  fetchMyApplications();
+}, [isLoggedIn]);
+
 
   // Login
   const handleLogin = async (e) => {
@@ -339,7 +350,12 @@ function App() {
     ...new Set(jobs.map((job) => job.company).filter(Boolean)),
   ].slice(0, 4);
 
-  return (
+  // Show a separate dashboard for administrators
+if (isLoggedIn && student?.role === "admin") {
+  return <AdminDashboard onLogout={handleLogout} />;
+}
+
+return (
     <div className="app">
       {/* Top navigation */}
       <nav className="navbar">

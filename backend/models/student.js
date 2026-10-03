@@ -19,18 +19,27 @@ const studentSchema = new mongoose.Schema(
     },
 
     branch: {
-      type: String,
-      required: true,
-    },
+  type: String,
+  required: function () {
+    return this.role === "student";
+  },
+},
 
-    cgpa: {
-      type: Number,
-      required: true,
-    },
+cgpa: {
+  type: Number,
+  required: function () {
+    return this.role === "student";
+  },
+},
 
     skills: {
       type: [String],
       default: [],
+    },
+    role: {
+      type: String,
+      enum: ["student", "admin"],
+      default: "student",
     },
   },
   {

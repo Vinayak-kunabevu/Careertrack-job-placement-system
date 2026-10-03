@@ -1,16 +1,17 @@
+
 const express = require("express");
 const Student = require("../models/student");
-
 const verifyToken = require("../middleware/authMiddleware");
+const verifyAdmin = require("../middleware/authMiddleware").verifyAdmin;
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const router = express.Router();
 
-// Get all students
-
-router.get("/", async (req, res) => {
+// Get all students (admin only)
+router.get("/", verifyToken, verifyAdmin, async (req, res) => {
   try {
     const students = await Student.find().select("-password");
-
     res.json(students);
   } catch (error) {
     res.status(500).json({
@@ -19,26 +20,17 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Create a new student
-
-const bcrypt = require("bcrypt");
-
-
-const jwt = require("jsonwebtoken");
-
 // Student login
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check required fields
     if (!email || !password) {
       return res.status(400).json({
         message: "Email and password are required",
       });
     }
 
-    // Find student by email
     const student = await Student.findOne({ email });
 
     if (!student) {
@@ -47,7 +39,6 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Compare entered password with stored hash
     const isPasswordValid = await bcrypt.compare(
       password,
       student.password
@@ -59,14 +50,15 @@ router.post("/login", async (req, res) => {
       });
     }
 
-    // Create JWT token
     const token = jwt.sign(
-      { id: student._id },
+      {
+        id: student._id,
+        role: student.role || "student",
+      },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
 
-    // Exclude password hash from response
     const studentResponse = student.toObject();
     delete studentResponse.password;
 
@@ -78,23 +70,29 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Login failed",
-      error: error.message,
     });
   }
 });
+
 // Register a new student
 router.post("/", async (req, res) => {
   try {
     const { name, email, password, branch, cgpa, skills } = req.body;
 
-    // Check required fields
-    if (!name || !email || !password || !branch || cgpa === undefined) {
+    if (
+      !name ||
+      !email ||
+      !password ||
+      !branch ||
+      cgpa === undefined ||
+      cgpa === null ||
+      cgpa === ""
+    ) {
       return res.status(400).json({
         message: "Please provide all required fields",
       });
     }
 
-    // Check whether the email already exists
     const existingStudent = await Student.findOne({ email });
 
     if (existingStudent) {
@@ -103,10 +101,8 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create student with hashed password
     const student = new Student({
       name,
       email,
@@ -114,11 +110,11 @@ router.post("/", async (req, res) => {
       branch,
       cgpa,
       skills,
+      role: "student",
     });
 
     const savedStudent = await student.save();
 
-    // Never send the password hash in the response
     const studentResponse = savedStudent.toObject();
     delete studentResponse.password;
 
@@ -134,7 +130,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-
+// Get logged-in user's profile
 router.get("/profile", verifyToken, async (req, res) => {
   try {
     const student = await Student.findById(req.studentId)
@@ -142,7 +138,7 @@ router.get("/profile", verifyToken, async (req, res) => {
 
     if (!student) {
       return res.status(404).json({
-        message: "Student not found",
+        message: "User not found",
       });
     }
 
@@ -157,14 +153,20 @@ router.get("/profile", verifyToken, async (req, res) => {
   }
 });
 
-// Update a student
-router.put("/:id", async (req, res) => {
+// Update a student (admin only)
+router.put("/:id", verifyToken, verifyAdmin, async (req, res) => {
   try {
+    // Prevent changing a user's role through this endpoint.
+    const { role, password, ...updates } = req.body;
+
     const updatedStudent = await Student.findByIdAndUpdate(
       req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+      updates,
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).select("-password");
 
     if (!updatedStudent) {
       return res.status(404).json({
@@ -172,17 +174,20 @@ router.put("/:id", async (req, res) => {
       });
     }
 
-    res.json(updatedStudent);
+    res.json({
+      message: "Student updated successfully",
+      student: updatedStudent,
+    });
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       message: "Failed to update student",
       error: error.message,
     });
   }
 });
 
-// Delete a student
-router.delete("/:id", async (req, res) => {
+// Delete a student (admin only)
+router.delete("/:id", verifyToken, verifyAdmin, async (req, res) => {
   try {
     const deletedStudent = await Student.findByIdAndDelete(req.params.id);
 
@@ -194,13 +199,12 @@ router.delete("/:id", async (req, res) => {
 
     res.json({
       message: "Student deleted successfully",
-      student: deletedStudent,
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(400).json({
       message: "Failed to delete student",
-      error: error.message,
     });
   }
 });
+
 module.exports = router;
